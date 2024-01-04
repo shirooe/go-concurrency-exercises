@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-func producer(tweets chan *Tweet, done chan<- struct{}, stream Stream) {
+func producer(tweets chan *Tweet, stream Stream) {
 	for {
 		tweet, err := stream.Next()
 		if err == ErrEOF {
@@ -48,7 +48,7 @@ func main() {
 	done := make(chan struct{})
 
 	// Producer
-	go producer(tweets, done, stream)
+	go producer(tweets, stream)
 
 	// Consumer
 	go consumer(tweets, done)
