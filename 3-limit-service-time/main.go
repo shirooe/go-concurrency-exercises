@@ -10,6 +10,11 @@
 
 package main
 
+import (
+	"fmt"
+	"time"
+)
+
 // User defines the UserModel. Use this to check whether a User is a
 // Premium user or not
 type User struct {
@@ -21,10 +26,36 @@ type User struct {
 // HandleRequest runs the processes requested by users. Returns false
 // if process had to be killed
 func HandleRequest(process func(), u *User) bool {
-	process()
-	return true
+	done := make(chan struct{})
+	now := time.NewTicker(time.Second)
+	defer now.Stop()
+
+	go func() {
+		for range now.C {
+			u.TimeUsed++
+			if hasExceededLimit(u) {
+				done <- struct{}{}
+				return
+			}
+		}
+	}()
+
+	go func() {
+		process()
+		done <- struct{}{}
+	}()
+
+	<-done
+
+	return hasExceededLimit(u)
+}
+
+func hasExceededLimit(u *User) bool {
+	return !u.IsPremium && u.TimeUsed > 10
 }
 
 func main() {
+	now := time.Now()
 	RunMockServer()
+	fmt.Println("Total time:", time.Since(now))
 }
