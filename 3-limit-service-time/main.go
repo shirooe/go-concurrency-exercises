@@ -27,13 +27,13 @@ type User struct {
 // if process had to be killed
 func HandleRequest(process func(), u *User) bool {
 	done := make(chan struct{})
-	now := time.NewTicker(time.Second)
-	defer now.Stop()
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
 
 	go func() {
-		for range now.C {
+		for range ticker.C {
 			u.TimeUsed++
-			if hasExceededLimit(u) {
+			if !u.IsPremium && u.TimeUsed >= 10 {
 				done <- struct{}{}
 				return
 			}
@@ -47,11 +47,12 @@ func HandleRequest(process func(), u *User) bool {
 
 	<-done
 
-	return hasExceededLimit(u)
-}
-
-func hasExceededLimit(u *User) bool {
-	return !u.IsPremium && u.TimeUsed > 10
+	if !u.IsPremium {
+		if u.TimeUsed >= 10 {
+			return false
+		}
+	}
+	return true
 }
 
 func main() {
