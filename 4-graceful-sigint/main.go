@@ -13,9 +13,31 @@
 
 package main
 
+import (
+	"os"
+	"os/signal"
+	"syscall"
+)
+
 func main() {
 	// Create a process
 	proc := MockProcess{}
+
+	notify := make(chan os.Signal, 2)
+	signal.Notify(notify, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		flag := false
+
+		for {
+			<-notify
+			if flag {
+				os.Exit(0)
+			}
+			flag = true
+			go proc.Stop()
+		}
+	}()
 
 	// Run the process (blocking)
 	proc.Run()
